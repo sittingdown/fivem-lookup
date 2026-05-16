@@ -675,21 +675,35 @@
 
 <script>
   const KNOWN_AC = [
-    { key: 'warden',        label: 'Warden' },
-    { key: 'anticheat',     label: 'AntiCheat' },
-    { key: 'screenshooter', label: 'Screenshooter' },
-    { key: 'easyanticheat', label: 'EasyAntiCheat' },
-    { key: 'eac',           label: 'EAC' },
-    { key: 'badger_ac',     label: 'Badger AC' },
-    { key: 'bac',           label: 'BAC' },
-    { key: 'fiveguard',     label: 'FiveGuard' },
-    { key: 'warden-ac',     label: 'Warden AC' },
-    { key: 'warden_ac',     label: 'Warden AC' },
-    { key: 'anticheat-v2',  label: 'AntiCheat v2' },
-    { key: 'shield',        label: 'Shield AC' },
-    { key: 'illusive_ac',   label: 'Illusive AC' },
-    { key: 'ksac',          label: 'KSAC' },
-    { key: 'txadmin',       label: 'txAdmin' },
+    { keys: ['warden', 'warden-ac', 'warden_ac'],         label: 'Warden' },
+    { keys: ['easyanticheat', 'eac'],                     label: 'EasyAntiCheat' },
+    { keys: ['fiveguard'],                                label: 'FiveGuard' },
+    { keys: ['badger_ac', 'badger-ac', 'bac'],            label: 'Badger Anti-Cheat' },
+    { keys: ['screenshooter'],                            label: 'Screenshooter' },
+    { keys: ['txadmin'],                                  label: 'txAdmin' },
+    { keys: ['ksac'],                                     label: 'KSAC' },
+    { keys: ['illusive_ac', 'illusive-ac'],               label: 'Illusive AC' },
+    { keys: ['shield_ac', 'shield-ac'],                   label: 'Shield AC' },
+    { keys: ['anticheat', 'anticheat-v2', 'anti_cheat'],  label: 'AntiCheat' },
+    { keys: ['wolf_ac', 'wolf-ac'],                       label: 'Wolf AC' },
+    { keys: ['reaper_ac', 'reaper-ac', 'reaper-anticheat'], label: 'Reaper AC' },
+    { keys: ['lynx_ac', 'lynx-ac'],                       label: 'Lynx AC' },
+    { keys: ['mn_anticheat'],                             label: 'MN AntiCheat' },
+    { keys: ['sentinel_ac', 'sentinel-ac'],               label: 'Sentinel AC' },
+    { keys: ['nova_ac', 'nova-ac'],                       label: 'Nova AC' },
+    { keys: ['nexus_ac', 'nexus-ac'],                     label: 'Nexus AC' },
+    { keys: ['quantum_ac', 'quantum-ac'],                 label: 'Quantum AC' },
+    { keys: ['pma-ac', 'pma_ac'],                         label: 'PMA Anti-Cheat' },
+    { keys: ['cerberus_ac', 'cerberus-ac'],               label: 'Cerberus AC' },
+    { keys: ['guardian_ac', 'guardian-ac'],               label: 'Guardian AC' },
+    { keys: ['proac', 'pro_ac', 'pro-ac'],                label: 'ProAC' },
+    { keys: ['nightfall_ac', 'nightfall-ac'],             label: 'Nightfall AC' },
+    { keys: ['apex_ac', 'apex-ac'],                       label: 'Apex AC' },
+    { keys: ['omega_ac', 'omega-ac'],                     label: 'Omega AC' },
+    { keys: ['phantom_ac', 'phantom-ac'],                 label: 'Phantom AC' },
+    { keys: ['spectre_ac', 'spectre-ac'],                 label: 'Spectre AC' },
+    { keys: ['blacklist_ac', 'blacklist-ac'],             label: 'Blacklist AC' },
+    { keys: ['overwatch_ac'],                             label: 'Overwatch AC' },
   ];
 
   const FRAMEWORKS = [
@@ -866,7 +880,7 @@
 
     // Resource lookups
     const rl = resources.map(r => r.toLowerCase());
-    const detectedAC  = KNOWN_AC.filter(ac => rl.some(r => r.includes(ac.key)));
+    const detectedAC  = KNOWN_AC.filter(ac => ac.keys.some(k => rl.some(r => r.includes(k))));
     const framework   = FRAMEWORKS.find(f => f.keys.some(k => rl.includes(k)));
     const voice       = VOICE_SYSTEMS.find(v => rl.some(r => r.includes(v.key)));
     const banSystem   = BAN_SYSTEMS.find(b => rl.some(r => r.includes(b.key)));
