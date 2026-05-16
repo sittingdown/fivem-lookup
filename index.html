@@ -905,10 +905,8 @@
           <span class="badge">Code: <strong>${escHtml(code)}</strong></span>
           <span class="badge">Game: <strong>${escHtml(gameType)}</strong></span>
           <span class="badge">Map: <strong>${escHtml(mapName)}</strong></span>
-          <span class="badge">Pure Level: <strong>${escHtml(pureLevel)}</strong></span>
           ${buildLabel ? `<span class="badge">Build: <strong>${escHtml(buildLabel)}</strong></span>` : ''}
           ${onesyncRaw ? `<span class="badge">OneSync: <strong>${onesyncOn ? 'On' : 'Off'}</strong></span>` : ''}
-          <span class="badge">Scripthook: <strong>${scripthook ? 'Allowed' : 'Blocked'}</strong></span>
         </div>
         ${desc ? `
           <div class="server-desc" id="srv-desc">${escHtml(desc)}</div>
