@@ -677,7 +677,7 @@
   const KNOWN_AC = [
     { keys: ['warden', 'warden-ac', 'warden_ac'],         label: 'Warden' },
     { keys: ['easyanticheat'],                            label: 'EasyAntiCheat' },
-    { keys: ['electron_ac', 'electron-ac', 'electronac'], label: 'Electron AC' },
+    { keys: ['electron_ac', 'electron-ac', 'electronac', 'cubic_ac'], label: 'Electron AC' },
     { keys: ['fiveguard'],                                label: 'FiveGuard' },
     { keys: ['badger_ac', 'badger-ac', 'bac'],            label: 'Badger Anti-Cheat' },
     { keys: ['screenshooter'],                            label: 'Screenshooter' },
@@ -882,6 +882,12 @@
     // Resource lookups
     const rl = resources.map(r => r.toLowerCase());
     const detectedAC  = KNOWN_AC.filter(ac => ac.keys.some(k => rl.some(r => r.includes(k))));
+    const knownACKeys = KNOWN_AC.flatMap(ac => ac.keys);
+    const unknownAC   = resources.filter(r => {
+      const lo = r.toLowerCase();
+      return (lo.endsWith('_ac') || lo.endsWith('-ac')) &&
+        !knownACKeys.some(k => lo.includes(k));
+    });
     const framework   = FRAMEWORKS.find(f => f.keys.some(k => rl.includes(k)));
     const voice       = VOICE_SYSTEMS.find(v => rl.some(r => r.includes(v.key)));
     const banSystem   = BAN_SYSTEMS.find(b => rl.some(r => r.includes(b.key)));
@@ -959,9 +965,12 @@
         <!-- Anti-cheat -->
         <div class="card">
           <div class="card-label">Anti-Cheat</div>
-          ${detectedAC.length
+          ${(detectedAC.length || unknownAC.length)
             ? `<div class="ac-status ac-detected">Detected</div>
-               <div class="ac-chips">${detectedAC.map(ac => `<span class="chip chip-green">${escHtml(ac.label)}</span>`).join('')}</div>`
+               <div class="ac-chips">
+                 ${detectedAC.map(ac => `<span class="chip chip-green">${escHtml(ac.label)}</span>`).join('')}
+                 ${unknownAC.map(r => `<span class="chip chip-green">${escHtml(r)}</span>`).join('')}
+               </div>`
             : `<div class="ac-status ac-none">None detected</div>
                <div class="sub-text" style="margin-top:8px">No known AC resources found</div>`}
           <div class="stack-rows" style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
