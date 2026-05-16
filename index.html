@@ -580,6 +580,57 @@
 
     .toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
 
+    /* ── Recent servers ── */
+    .recent-wrap {
+      max-width: 520px;
+      margin: -24px auto 32px;
+    }
+
+    .recent-label {
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .recent-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .recent-chip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      cursor: pointer;
+      padding: 6px 13px;
+      transition: border-color 0.15s, background 0.15s;
+      max-width: 200px;
+    }
+
+    .recent-chip:hover {
+      border-color: var(--accent);
+      background: var(--surface2);
+    }
+
+    .recent-chip-name {
+      color: var(--text);
+      font-size: 0.8rem;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .recent-chip-code {
+      color: var(--muted);
+      font-size: 0.68rem;
+      margin-top: 1px;
+    }
+
     /* ── Mobile tweaks ── */
     @media (max-width: 500px) {
       .server-title-row { flex-direction: column; }
@@ -606,6 +657,11 @@
     Not sure of the code?
     <a href="https://servers.fivem.net" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;font-weight:600">Browse the FiveM server list ↗</a>
   </p>
+</div>
+
+<div class="recent-wrap" id="recent-wrap" style="display:none">
+  <div class="recent-label">Recent Servers</div>
+  <div class="recent-chips" id="recent-chips"></div>
 </div>
 
 <p id="error-msg"></p>
@@ -667,10 +723,55 @@
 
   const HIDDEN_VARS = ['sv_licenseKey', 'sv_licenseKeyToken', 'sv_steamApiKey', 'sv_tebexSecret'];
 
-  // Restore last code on load
-  const saved = localStorage.getItem('fivem_last_code');
-  if (saved) {
-    document.getElementById('code-input').value = saved;
+  const HISTORY_KEY = 'fivem_history';
+  const MAX_HISTORY = 5;
+
+  function loadHistory() {
+    try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
+    catch { return []; }
+  }
+
+  function saveToHistory(code, name) {
+    let hist = loadHistory().filter(h => h.code !== code);
+    hist.unshift({ code, name });
+    if (hist.length > MAX_HISTORY) hist = hist.slice(0, MAX_HISTORY);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
+    // Migrate away from old key
+    localStorage.removeItem('fivem_last_code');
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const hist = loadHistory();
+    const wrap  = document.getElementById('recent-wrap');
+    const chips = document.getElementById('recent-chips');
+    if (!hist.length) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'block';
+    chips.innerHTML = hist.map(h => `
+      <div class="recent-chip" onclick="loadFromHistory('${escHtml(h.code)}')">
+        <div class="recent-chip-name">${escHtml(h.name)}</div>
+        <div class="recent-chip-code">${escHtml(h.code)}</div>
+      </div>`).join('');
+  }
+
+  function loadFromHistory(code) {
+    document.getElementById('code-input').value = code;
+    lookup();
+  }
+
+  // Migrate old single-code storage to history format
+  const oldCode = localStorage.getItem('fivem_last_code');
+  if (oldCode && !loadHistory().length) {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify([{ code: oldCode, name: oldCode }]));
+    localStorage.removeItem('fivem_last_code');
+  }
+
+  renderHistory();
+
+  // Auto-load most recent server
+  const hist = loadHistory();
+  if (hist.length) {
+    document.getElementById('code-input').value = hist[0].code;
     lookup();
   }
 
@@ -704,7 +805,8 @@
       const res = await fetch(`https://servers-frontend.fivem.net/api/servers/single/${code}`);
       if (!res.ok) throw new Error(res.status === 404 ? 'Server not found. Check the code and try again.' : `HTTP ${res.status}`);
       const json = await res.json();
-      localStorage.setItem('fivem_last_code', code);
+      const name = stripColor(json.Data?.hostname || json.Data?.vars?.sv_projectName || code);
+      saveToHistory(code, name);
       render(json.Data, code);
     } catch (e) {
       showError(e.message || 'Failed to fetch server data.');
