@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FiveM Server Lookup</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #0d0d0f;
+      --surface:    #16161a;
+      --surface2:   #1e1e24;
+      --border:     #2a2a33;
+      --accent:     #7c6fe0;
+      --text:       #e8e8f0;
+      --muted:      #888899;
+      --green:      #4ade80;
+      --red:        #f87171;
+      --yellow:     #facc15;
+      --radius:     10px;
+      --gap:        16px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 40px 16px 80px;
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    header p {
+      color: var(--muted);
+      margin-top: 6px;
+      font-size: 0.9rem;
+    }
+
+    /* ── Search ── */
+    .search-wrap {
+      max-width: 520px;
+      margin: 0 auto 40px;
+    }
+
+    .search-bar {
+      display: flex;
+      gap: 10px;
+    }
+
+    .search-bar input {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 0.95rem;
+      padding: 13px 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-bar input::placeholder { color: var(--muted); }
+    .search-bar input:focus { border-color: var(--accent); }
+
+    .search-bar button {
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius);
+      color: #fff;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 13px 24px;
+      transition: opacity 0.15s;
+      white-space: nowrap;
+    }
+
+    .search-bar button:hover   { opacity: 0.85; }
+    .search-bar button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .hint {
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    /* ── Status messages ── */
+    #error-msg {
+      text-align: center;
+      color: var(--red);
+      font-size: 0.88rem;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    #loading {
+      display: none;
+      text-align: center;
+      padding: 48px 0;
+    }
+
+    .spinner {
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 12px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loading p { color: var(--muted); font-size: 0.85rem; }
+
+    /* ── Results container ── */
+    #results {
+      max-width: 920px;
+      margin: 0 auto;
+      display: none;
+      animation: fadeUp 0.25s ease;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Server header card ── */
+    .server-header {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      margin-bottom: var(--gap);
+    }
+
+    .server-title-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .server-name {
+      font-size: 1.4rem;
+      font-weight: 700;
+      line-height: 1.3;
+      flex: 1;
+      min-width: 0;
+      word-break: break-word;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+      align-items: flex-start;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 0.83rem;
+      font-weight: 600;
+      padding: 9px 16px;
+      text-decoration: none;
+      transition: opacity 0.15s;
+      display: inline-block;
+    }
+
+    .btn:hover { opacity: 0.82; }
+    .btn-accent  { background: var(--accent); }
+    .btn-discord { background: #5865f2; }
+
+    .server-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .badge {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      padding: 4px 10px;
+      line-height: 1.5;
+    }
+
+    .badge strong { color: var(--text); font-weight: 600; }
+
+    .server-desc {
+      color: var(--muted);
+      font-size: 0.85rem;
+      line-height: 1.65;
+      margin-top: 16px;
+      max-height: 72px;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+      position: relative;
+    }
+
+    .server-desc.expanded { max-height: 600px; }
+
+    .desc-toggle {
+      background: none;
+      border: none;
+      color: var(--accent);
+      cursor: pointer;
+      font-size: 0.8rem;
+      margin-top: 6px;
+      padding: 0;
+    }
+
+    /* ── Stat card grid ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--gap);
+      margin-bottom: var(--gap);
+    }
+
+    @media (max-width: 600px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card-label {
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    /* Players card */
+    .player-count {
+      font-size: 2.6rem;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -1px;
+    }
+
+    .player-count .denom {
+      color: var(--muted);
+      font-size: 1.1rem;
+      font-weight: 400;
+      letter-spacing: 0;
+    }
+
+    .player-bar-wrap {
+      background: var(--surface2);
+      border-radius: 4px;
+      height: 5px;
+      margin-top: 14px;
+      overflow: hidden;
+    }
+
+    .player-bar {
+      background: var(--accent);
+      border-radius: 4px;
+      height: 100%;
+      transition: width 0.5s ease;
+    }
+
+    .ping-stats {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+
+    .ping-stat { text-align: center; flex: 1; }
+
+    .ping-stat-val {
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    .ping-stat-lbl {
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-top: 3px;
+    }
+
+    .col-green { color: var(--green); }
+    .col-red   { color: var(--red); }
+    .col-muted { color: var(--muted); }
+
+    /* Anti-cheat card */
+    .ac-status {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .ac-detected { color: var(--green); }
+    .ac-none     { color: var(--muted); }
+
+    .ac-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .chip {
+      border-radius: 5px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      padding: 3px 9px;
+    }
+
+    .chip-green {
+      background: color-mix(in srgb, var(--green) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--green) 28%, transparent);
+      color: var(--green);
+    }
+
+    /* Resources card */
+    .big-num { font-size: 2rem; font-weight: 700; }
+    .sub-text { color: var(--muted); font-size: 0.8rem; margin-top: 5px; }
+
+    /* Server stack card */
+    .stack-rows { display: flex; flex-direction: column; gap: 0; margin-top: 2px; }
+
+    .stack-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .stack-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .stack-row:first-child { padding-top: 0; }
+
+    .stack-lbl {
+      color: var(--muted);
+      font-size: 0.73rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .stack-val { font-size: 0.88rem; font-weight: 600; }
+
+    /* ── Full-width cards ── */
+    .full-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      margin-bottom: var(--gap);
+    }
+
+    .full-card:last-child { margin-bottom: 0; }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    /* Player list */
+    .filter-input {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 0.8rem;
+      outline: none;
+      padding: 6px 12px;
+      width: 170px;
+      transition: border-color 0.2s;
+    }
+
+    .filter-input:focus { border-color: var(--accent); }
+    .filter-input::placeholder { color: var(--muted); }
+
+    .player-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .player-table th {
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      padding: 0 8px 10px;
+      text-align: left;
+      text-transform: uppercase;
+    }
+
+    .player-table th:first-child { padding-left: 0; width: 52px; }
+
+    .player-table td {
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+      padding: 9px 8px;
+    }
+
+    .player-table td:first-child { padding-left: 0; color: var(--muted); }
+
+    .player-table tbody tr:hover td { background: var(--surface2); }
+
+    .ping-pill {
+      border-radius: 5px;
+      display: inline-block;
+      font-size: 0.74rem;
+      font-weight: 600;
+      padding: 2px 8px;
+    }
+
+    .ping-good { background: color-mix(in srgb, var(--green)  12%, transparent); color: var(--green); }
+    .ping-mid  { background: color-mix(in srgb, var(--yellow) 12%, transparent); color: var(--yellow); }
+    .ping-bad  { background: color-mix(in srgb, var(--red)    12%, transparent); color: var(--red); }
+
+    .empty-state {
+      color: var(--muted);
+      font-size: 0.85rem;
+      padding: 20px 0;
+      text-align: center;
+    }
+
+    .player-name {
+      cursor: pointer;
+      transition: color 0.15s;
+      user-select: none;
+    }
+
+    .player-name:hover  { color: var(--accent); }
+    .player-name.open   { color: var(--accent); }
+
+    .id-row td {
+      background: var(--surface2) !important;
+      border-top: none !important;
+      padding: 12px 8px 14px 52px;
+    }
+
+    .id-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .id-entry {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      font-size: 0.82rem;
+    }
+
+    .id-type {
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      width: 72px;
+      flex-shrink: 0;
+    }
+
+    .id-val {
+      color: var(--text);
+      font-family: 'Consolas', 'Menlo', monospace;
+      font-size: 0.78rem;
+      word-break: break-all;
+    }
+
+    .id-val a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .id-val a:hover { text-decoration: underline; }
+
+    /* Tags */
+    .tags-wrap { display: flex; flex-wrap: wrap; gap: 7px; }
+
+    .tag {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--muted);
+      font-size: 0.77rem;
+      padding: 4px 10px;
+    }
+
+    /* Vars table */
+    .vars-table { width: 100%; border-collapse: collapse; }
+
+    .vars-table td {
+      border-top: 1px solid var(--border);
+      font-size: 0.82rem;
+      padding: 9px 0;
+      vertical-align: top;
+    }
+
+    .vars-table td:first-child {
+      color: var(--muted);
+      padding-right: 20px;
+      white-space: nowrap;
+      width: 38%;
+    }
+
+    .vars-table td:last-child { word-break: break-word; }
+
+    /* Resource grid */
+    .resource-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-height: 188px;
+      overflow: hidden;
+      transition: max-height 0.35s ease;
+    }
+
+    .resource-grid.expanded { max-height: 9999px; }
+
+    .res-chip {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      padding: 3px 8px;
+    }
+
+    .res-chip.ac-highlight {
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
+      border-color: color-mix(in srgb, var(--accent) 32%, transparent);
+      color: var(--accent);
+    }
+
+    .toggle-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.77rem;
+      margin-top: 12px;
+      padding: 5px 13px;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Mobile tweaks ── */
+    @media (max-width: 500px) {
+      .server-title-row { flex-direction: column; }
+      .btn-group { width: 100%; }
+      .btn { flex: 1; text-align: center; }
+      .filter-input { width: 120px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>FiveM Server Lookup</h1>
+  <p>Enter a server code to view live server information</p>
+</header>
+
+<div class="search-wrap">
+  <div class="search-bar">
+    <input id="code-input" type="text" placeholder="Server code (e.g. abc123)" maxlength="10" />
+    <button id="lookup-btn" onclick="lookup()">Look Up</button>
+  </div>
+  <p class="hint">Find the server code in the FiveM server browser or a server's Discord</p>
+</div>
+
+<p id="error-msg"></p>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <p>Fetching server data…</p>
+</div>
+
+<div id="results"></div>
+
+<script>
+  const KNOWN_AC = [
+    { key: 'warden',        label: 'Warden' },
+    { key: 'anticheat',     label: 'AntiCheat' },
+    { key: 'screenshooter', label: 'Screenshooter' },
+    { key: 'easyanticheat', label: 'EasyAntiCheat' },
+    { key: 'eac',           label: 'EAC' },
+    { key: 'badger_ac',     label: 'Badger AC' },
+    { key: 'bac',           label: 'BAC' },
+    { key: 'fiveguard',     label: 'FiveGuard' },
+    { key: 'warden-ac',     label: 'Warden AC' },
+    { key: 'warden_ac',     label: 'Warden AC' },
+    { key: 'anticheat-v2',  label: 'AntiCheat v2' },
+    { key: 'shield',        label: 'Shield AC' },
+    { key: 'illusive_ac',   label: 'Illusive AC' },
+    { key: 'ksac',          label: 'KSAC' },
+    { key: 'txadmin',       label: 'txAdmin' },
+  ];
+
+  const FRAMEWORKS = [
+    { keys: ['qbx_core'],    label: 'QBox' },
+    { keys: ['qb-core'],     label: 'QBCore' },
+    { keys: ['es_extended'], label: 'ESX' },
+    { keys: ['ox_core'],     label: 'ox_core' },
+    { keys: ['vrp'],         label: 'vRP' },
+  ];
+
+  const VOICE_SYSTEMS = [
+    { key: 'pma-voice',   label: 'pma-voice' },
+    { key: 'saltychat',   label: 'SaltyChat' },
+    { key: 'mumble-voip', label: 'Mumble VoIP' },
+    { key: 'tokovoip',    label: 'TokoVoip' },
+    { key: 'ws-voice',    label: 'WS Voice' },
+  ];
+
+  const BUILD_NAMES = {
+    '1604': 'Los Santos Summer Special',
+    '2060': 'Cayo Perico Heist',
+    '2189': 'The Contract',
+    '2372': 'Criminal Enterprises',
+    '2545': 'Drug Wars',
+    '2699': 'San Andreas Mercenaries',
+    '2802': 'Chop Shop',
+    '2944': 'Bottom Dollar Bounties',
+    '3095': 'Bottom Dollar Bounties',
+    '3258': 'Agents of Sabotage',
+  };
+
+  const HIDDEN_VARS = ['sv_licenseKey', 'sv_licenseKeyToken', 'sv_steamApiKey', 'sv_tebexSecret'];
+
+  // Restore last code on load
+  const saved = localStorage.getItem('fivem_last_code');
+  if (saved) {
+    document.getElementById('code-input').value = saved;
+    lookup();
+  }
+
+  document.getElementById('code-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') lookup();
+  });
+
+  function showError(msg) {
+    const el = document.getElementById('error-msg');
+    el.textContent = msg;
+    el.style.display = 'block';
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('lookup-btn').disabled = false;
+  }
+
+  function setLoading(on) {
+    document.getElementById('loading').style.display = on ? 'block' : 'none';
+    document.getElementById('error-msg').style.display = 'none';
+    document.getElementById('lookup-btn').disabled = on;
+  }
+
+  async function lookup() {
+    const code = document.getElementById('code-input').value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (!code) { showError('Please enter a server code.'); return; }
+
+    document.getElementById('results').style.display = 'none';
+    document.getElementById('results').innerHTML = '';
+    setLoading(true);
+
+    try {
+      const res = await fetch(`https://servers-frontend.fivem.net/api/servers/single/${code}`);
+      if (!res.ok) throw new Error(res.status === 404 ? 'Server not found. Check the code and try again.' : `HTTP ${res.status}`);
+      const json = await res.json();
+      localStorage.setItem('fivem_last_code', code);
+      render(json.Data, code);
+    } catch (e) {
+      showError(e.message || 'Failed to fetch server data.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function pingClass(ms) {
+    if (ms <= 80)  return 'ping-good';
+    if (ms <= 200) return 'ping-mid';
+    return 'ping-bad';
+  }
+
+  function stripColor(str) {
+    return (str || '').replace(/\^[0-9]/g, '').replace(/~[a-zA-Z0-9~]+~/g, '').trim();
+  }
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function render(d, code) {
+    const vars      = d.vars || {};
+    const resources = d.resources || [];
+    const players   = [...(d.players || [])].sort((a, b) => (a.id ?? Infinity) - (b.id ?? Infinity));
+    const tags      = (vars.tags || '').split(',').map(t => t.trim()).filter(Boolean);
+
+    const serverName  = stripColor(d.hostname || vars.sv_projectName || 'Unknown Server');
+    const maxPlayers  = d.svMaxclients || vars.sv_maxClients || '?';
+    const playerCount = players.length;
+    const gameType    = vars.gametype || '—';
+    const mapName     = vars.mapname  || '—';
+    const pureLevel   = vars.sv_pureLevel || '0';
+    const desc        = stripColor(vars.sv_projectDesc || '');
+
+    // Buttons
+    const rawDiscord = vars.Discord || vars.discord || vars.sv_discord || vars.DISCORD || '';
+    const discordUrl = rawDiscord ? (rawDiscord.startsWith('http') ? rawDiscord : 'https://' + rawDiscord) : null;
+
+    // Resource lookups
+    const rl = resources.map(r => r.toLowerCase());
+    const detectedAC  = KNOWN_AC.filter(ac => rl.some(r => r.includes(ac.key)));
+    const framework   = FRAMEWORKS.find(f => f.keys.some(k => rl.includes(k)));
+    const voice       = VOICE_SYSTEMS.find(v => rl.some(r => r.includes(v.key)));
+
+    // Meta
+    const gameBuild  = vars.sv_enforceGameBuild;
+    const buildLabel = gameBuild ? `${gameBuild}${BUILD_NAMES[gameBuild] ? ' · ' + BUILD_NAMES[gameBuild] : ''}` : null;
+    const onesyncRaw = vars.onesync_enabled || vars.sv_onesync || '';
+    const onesyncOn  = ['true','1','on','legacy'].includes(onesyncRaw.toLowerCase());
+    const scripthook = vars.sv_scriptHookAllowed === '1' || vars.sv_scriptHookAllowed === 'true';
+
+    // Ping stats
+    const pings   = players.map(p => p.ping).filter(p => typeof p === 'number' && p > 0);
+    const pingAvg = pings.length ? Math.round(pings.reduce((a, b) => a + b, 0) / pings.length) : null;
+    const pingMin = pings.length ? Math.min(...pings) : null;
+    const pingMax = pings.length ? Math.max(...pings) : null;
+
+    const fillPct    = maxPlayers !== '?' ? Math.min(100, Math.round((playerCount / maxPlayers) * 100)) : 0;
+    const publicVars = Object.entries(vars).filter(([k]) =>
+      !HIDDEN_VARS.includes(k) && !k.startsWith('_') && typeof vars[k] === 'string' && vars[k].length > 0
+    );
+
+    document.getElementById('results').innerHTML = `
+
+      <!-- Server header -->
+      <div class="server-header">
+        <div class="server-title-row">
+          <div class="server-name">${escHtml(serverName)}</div>
+          <div class="btn-group">
+            ${discordUrl ? `<a class="btn btn-discord" href="${escHtml(discordUrl)}" target="_blank" rel="noopener">Discord</a>` : ''}
+            <a class="btn btn-accent" href="fivem://connect/${escHtml(code)}">Direct Connect</a>
+          </div>
+        </div>
+        <div class="server-meta">
+          <span class="badge">Code: <strong>${escHtml(code)}</strong></span>
+          <span class="badge">Game: <strong>${escHtml(gameType)}</strong></span>
+          <span class="badge">Map: <strong>${escHtml(mapName)}</strong></span>
+          <span class="badge">Pure Level: <strong>${escHtml(pureLevel)}</strong></span>
+          ${buildLabel ? `<span class="badge">Build: <strong>${escHtml(buildLabel)}</strong></span>` : ''}
+          ${onesyncRaw ? `<span class="badge">OneSync: <strong>${onesyncOn ? 'On' : 'Off'}</strong></span>` : ''}
+          <span class="badge">Scripthook: <strong>${scripthook ? 'Allowed' : 'Blocked'}</strong></span>
+        </div>
+        ${desc ? `
+          <div class="server-desc" id="srv-desc">${escHtml(desc)}</div>
+          <button class="desc-toggle" onclick="toggleDesc()">Show more</button>
+        ` : ''}
+      </div>
+
+      <!-- Stat cards (2-column grid) -->
+      <div class="grid">
+
+        <!-- Players -->
+        <div class="card">
+          <div class="card-label">Players</div>
+          <div class="player-count">${playerCount}<span class="denom"> / ${maxPlayers}</span></div>
+          <div class="player-bar-wrap">
+            <div class="player-bar" style="width:${fillPct}%"></div>
+          </div>
+          ${pingAvg !== null ? `
+          <div class="ping-stats">
+            <div class="ping-stat">
+              <div class="ping-stat-val col-green">${pingMin} ms</div>
+              <div class="ping-stat-lbl">Best</div>
+            </div>
+            <div class="ping-stat">
+              <div class="ping-stat-val">${pingAvg} ms</div>
+              <div class="ping-stat-lbl">Avg</div>
+            </div>
+            <div class="ping-stat">
+              <div class="ping-stat-val col-red">${pingMax} ms</div>
+              <div class="ping-stat-lbl">Worst</div>
+            </div>
+          </div>` : ''}
+        </div>
+
+        <!-- Anti-cheat -->
+        <div class="card">
+          <div class="card-label">Anti-Cheat</div>
+          ${detectedAC.length
+            ? `<div class="ac-status ac-detected">Detected</div>
+               <div class="ac-chips">${detectedAC.map(ac => `<span class="chip chip-green">${escHtml(ac.label)}</span>`).join('')}</div>`
+            : `<div class="ac-status ac-none">None detected</div>
+               <div class="sub-text" style="margin-top:8px">No known AC resources found</div>`}
+        </div>
+
+        <!-- Resources -->
+        <div class="card">
+          <div class="card-label">Resources</div>
+          <div class="big-num">${resources.length}</div>
+          <div class="sub-text">Total loaded resources</div>
+        </div>
+
+        <!-- Server stack -->
+        <div class="card">
+          <div class="card-label">Server Stack</div>
+          <div class="stack-rows">
+            <div class="stack-row">
+              <span class="stack-lbl">Framework</span>
+              <span class="stack-val ${framework ? '' : 'col-muted'}">${framework ? escHtml(framework.label) : 'Unknown'}</span>
+            </div>
+            <div class="stack-row">
+              <span class="stack-lbl">Voice Chat</span>
+              <span class="stack-val ${voice ? '' : 'col-muted'}">${voice ? escHtml(voice.label) : 'Unknown'}</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Tags -->
+      ${tags.length ? `
+      <div class="full-card">
+        <div class="card-label">Tags</div>
+        <div class="tags-wrap">${tags.map(t => `<span class="tag">${escHtml(t)}</span>`).join('')}</div>
+      </div>` : ''}
+
+      <!-- Player list -->
+      <div class="full-card">
+        <div class="card-header">
+          <div class="card-label" style="margin:0">Player List</div>
+          <input class="filter-input" id="player-search" placeholder="Search players…" oninput="filterPlayers()" />
+        </div>
+        ${players.length ? `
+        <table class="player-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Ping</th>
+            </tr>
+          </thead>
+          <tbody id="player-tbody">
+            ${players.map((p, i) => `
+            <tr data-name="${escHtml((p.name || '').toLowerCase())}" data-identifiers="${escHtml(JSON.stringify(p.identifiers || []))}">
+              <td>${p.id ?? i + 1}</td>
+              <td class="player-name" onclick="toggleIdentifiers(this)">${escHtml(p.name || 'Unknown')}</td>
+              <td><span class="ping-pill ${pingClass(p.ping)}">${p.ping ?? '?'} ms</span></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+        <div class="empty-state" id="no-players" style="display:none">No players match your search.</div>
+        ` : '<div class="empty-state">No players currently online.</div>'}
+      </div>
+
+      <!-- Server variables -->
+      ${publicVars.length ? `
+      <div class="full-card">
+        <div class="card-label">Server Variables</div>
+        <table class="vars-table">
+          <tbody>
+            ${publicVars.map(([k, v]) => `
+            <tr>
+              <td>${escHtml(k)}</td>
+              <td>${escHtml(v)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>` : ''}
+
+      <!-- All resources -->
+      ${resources.length ? `
+      <div class="full-card">
+        <div class="card-header">
+          <div class="card-label" style="margin:0">All Resources <span style="color:var(--muted);font-weight:400">(${resources.length})</span></div>
+        </div>
+        <div class="resource-grid" id="resource-grid">
+          ${resources.map(r => {
+            const isAC = KNOWN_AC.some(ac => r.toLowerCase().includes(ac.key));
+            return `<span class="res-chip${isAC ? ' ac-highlight' : ''}">${escHtml(r)}</span>`;
+          }).join('')}
+        </div>
+        <button class="toggle-btn" id="res-toggle" onclick="toggleResources()">Show all resources</button>
+      </div>` : ''}
+
+    `;
+
+    document.getElementById('results').style.display = 'block';
+  }
+
+  const ID_LABELS = {
+    steam:   'Steam',
+    license: 'License',
+    discord: 'Discord',
+    fivem:   'FiveM',
+    xbl:     'Xbox Live',
+    live:    'Microsoft',
+    ip:      'IP',
+  };
+
+  function toggleIdentifiers(nameCell) {
+    const row  = nameCell.closest('tr');
+    const next = row.nextElementSibling;
+
+    // Collapse if already open
+    if (next && next.classList.contains('id-row')) {
+      next.remove();
+      nameCell.classList.remove('open');
+      return;
+    }
+
+    // Close any other open rows first
+    document.querySelectorAll('.id-row').forEach(r => r.remove());
+    document.querySelectorAll('.player-name.open').forEach(n => n.classList.remove('open'));
+
+    nameCell.classList.add('open');
+
+    const identifiers = JSON.parse(row.dataset.identifiers || '[]');
+    const detailRow   = document.createElement('tr');
+    detailRow.className = 'id-row';
+
+    const items = identifiers.length
+      ? identifiers.map(id => {
+          const sep   = id.indexOf(':');
+          const type  = id.substring(0, sep);
+          const value = id.substring(sep + 1);
+          const label = ID_LABELS[type] || type;
+          let   val   = escHtml(value);
+
+          if (type === 'steam') {
+            try {
+              const steam64 = BigInt('0x' + value).toString();
+              val = `<a href="https://steamcommunity.com/profiles/${steam64}" target="_blank" rel="noopener">${steam64}</a>`;
+            } catch {}
+          }
+
+          return `<div class="id-entry"><span class="id-type">${label}</span><span class="id-val">${val}</span></div>`;
+        }).join('')
+      : '<span style="color:var(--muted);font-size:0.82rem">No identifiers available</span>';
+
+    detailRow.innerHTML = `<td colspan="3"><div class="id-list">${items}</div></td>`;
+    row.after(detailRow);
+  }
+
+  function filterPlayers() {
+    const q = document.getElementById('player-search').value.toLowerCase();
+    const rows = document.querySelectorAll('#player-tbody tr');
+    let visible = 0;
+    rows.forEach(row => {
+      const match = row.dataset.name.includes(q);
+      row.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    const noEl = document.getElementById('no-players');
+    if (noEl) noEl.style.display = visible === 0 ? 'block' : 'none';
+  }
+
+  function toggleDesc() {
+    const el  = document.getElementById('srv-desc');
+    const btn = el.nextElementSibling;
+    el.classList.toggle('expanded');
+    btn.textContent = el.classList.contains('expanded') ? 'Show less' : 'Show more';
+  }
+
+  function toggleResources() {
+    const grid = document.getElementById('resource-grid');
+    const btn  = document.getElementById('res-toggle');
+    grid.classList.toggle('expanded');
+    btn.textContent = grid.classList.contains('expanded') ? 'Show less' : 'Show all resources';
+  }
+</script>
+
+</body>
+</html>
