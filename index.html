@@ -721,6 +721,21 @@
     '3258': 'Agents of Sabotage',
   };
 
+  const BAN_SYSTEMS = [
+    { key: 'bansystem',      label: 'BanSystem' },
+    { key: 'ban_system',     label: 'BanSystem' },
+    { key: 'ban_list',       label: 'BanList' },
+    { key: 'banlist',        label: 'BanList' },
+    { key: 'bl-banning',     label: 'BL-Banning' },
+    { key: 'bm-ban',         label: 'BM-Ban' },
+    { key: 'hardcap',        label: 'Hardcap' },
+    { key: 'es_admin',       label: 'ES Admin' },
+    { key: 'evolved_admin',  label: 'Evolved Admin' },
+    { key: 'racingbanlist',  label: 'RacingBanList' },
+  ];
+
+  const WHITELIST_KEYS = ['whitelist', 'esx_whitelist', 'qb-whitelist', 'whitelist-system', 'fiveguard'];
+
   const HIDDEN_VARS = ['sv_licenseKey', 'sv_licenseKeyToken', 'sv_steamApiKey', 'sv_tebexSecret'];
 
   const HISTORY_KEY = 'fivem_history';
@@ -854,6 +869,8 @@
     const detectedAC  = KNOWN_AC.filter(ac => rl.some(r => r.includes(ac.key)));
     const framework   = FRAMEWORKS.find(f => f.keys.some(k => rl.includes(k)));
     const voice       = VOICE_SYSTEMS.find(v => rl.some(r => r.includes(v.key)));
+    const banSystem   = BAN_SYSTEMS.find(b => rl.some(r => r.includes(b.key)));
+    const whitelist   = WHITELIST_KEYS.some(k => rl.some(r => r.includes(k)));
 
     // Meta
     const gameBuild  = vars.sv_enforceGameBuild;
@@ -934,6 +951,26 @@
                <div class="ac-chips">${detectedAC.map(ac => `<span class="chip chip-green">${escHtml(ac.label)}</span>`).join('')}</div>`
             : `<div class="ac-status ac-none">None detected</div>
                <div class="sub-text" style="margin-top:8px">No known AC resources found</div>`}
+          <div class="stack-rows" style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
+            <div class="stack-row">
+              <span class="stack-lbl">Pure Level</span>
+              <span class="stack-val ${pureLevel === '2' ? 'col-green' : pureLevel === '1' ? '' : 'col-muted'}">
+                ${{ '0': 'Off', '1': 'Level 1', '2': 'Strict' }[pureLevel] || `Level ${escHtml(pureLevel)}`}
+              </span>
+            </div>
+            <div class="stack-row">
+              <span class="stack-lbl">Whitelist</span>
+              <span class="stack-val ${whitelist ? 'col-green' : 'col-muted'}">${whitelist ? 'Enabled' : 'None detected'}</span>
+            </div>
+            <div class="stack-row">
+              <span class="stack-lbl">Ban System</span>
+              <span class="stack-val ${banSystem ? 'col-green' : 'col-muted'}">${banSystem ? escHtml(banSystem.label) : 'None detected'}</span>
+            </div>
+            <div class="stack-row">
+              <span class="stack-lbl">Scripthook</span>
+              <span class="stack-val ${scripthook ? 'col-red' : 'col-green'}">${scripthook ? 'Allowed' : 'Blocked'}</span>
+            </div>
+          </div>
         </div>
 
         <!-- Resources -->
