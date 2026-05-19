@@ -1052,10 +1052,38 @@
     }
   }
 
-  function refresh() {
+  // Soft refresh — re-fetch the current server and swap the data in place,
+  // with no teardown, no loading spinner and no page flash.
+  async function refresh() {
     if (!currentCode) return;
-    document.getElementById('code-input').value = currentCode;
-    lookup();
+    const code = currentCode;
+
+    // Cancel any in-flight request
+    if (activeController) activeController.abort();
+    activeController = new AbortController();
+    const signal = activeController.signal;
+
+    const btn = document.getElementById('refresh-btn');
+    if (btn) { btn.textContent = 'Refreshing…'; btn.disabled = true; }
+
+    // Preserve the player / resource filter text across the in-place re-render
+    const playerFilter = (document.getElementById('player-search') || {}).value || '';
+    const resFilter    = (document.getElementById('res-search')    || {}).value || '';
+
+    try {
+      const json = await fetchServer(code, signal);
+      const name = stripColor(json.Data?.hostname || json.Data?.vars?.sv_projectName || code);
+      saveToHistory(code, name);
+      render(json.Data, code);   // instant innerHTML swap — #results stays visible, no spinner
+      const ps = document.getElementById('player-search');
+      if (ps && playerFilter) { ps.value = playerFilter; filterPlayers(); }
+      const rs = document.getElementById('res-search');
+      if (rs && resFilter)    { rs.value = resFilter;    filterResources(); }
+    } catch (e) {
+      if (e.name === 'AbortError') return;  // superseded by a newer request
+      const b = document.getElementById('refresh-btn');
+      if (b) { b.textContent = 'Retry'; b.disabled = false; }
+    }
   }
 
   function updateFreshness() {
@@ -1231,7 +1259,7 @@
         <div class="freshness">
           <span id="fresh-text">Updated just now</span>
           <span style="color:var(--border)">·</span>
-          <button class="link-btn" onclick="refresh()">Refresh</button>
+          <button class="link-btn" id="refresh-btn" onclick="refresh()">Refresh</button>
         </div>
         ${desc ? `
           <div class="server-desc" id="srv-desc">${escHtml(desc)}</div>
