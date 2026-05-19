@@ -439,6 +439,18 @@
       margin-bottom: 14px;
     }
 
+    /* Player-list header sticks to the top while scrolling the list,
+       and is constrained to the card so it never leaves the panel */
+    .player-list-card .card-header {
+      position: sticky;
+      top: 0;
+      z-index: 4;
+      margin: 0 -22px 14px;
+      padding: 13px 22px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+
     /* Player list */
     .filter-input {
       background: var(--surface2);
@@ -1386,7 +1398,7 @@
       </div>` : ''}
 
       <!-- Player list -->
-      <div class="full-card">
+      <div class="full-card player-list-card">
         <div class="card-header">
           <div class="player-list-head">
             <div class="card-label" style="margin:0">Player List</div>
