@@ -1073,12 +1073,13 @@
       ${resources.length ? `
       <div class="full-card">
         <div class="card-header">
-          <div class="card-label" style="margin:0">All Resources <span style="color:var(--muted);font-weight:400">(${resources.length})</span></div>
+          <div class="card-label" style="margin:0">All Resources <span id="res-count" style="color:var(--muted);font-weight:400">(${resources.length})</span></div>
+          <input class="filter-input" id="res-search" placeholder="Search resources…" oninput="filterResources()" />
         </div>
         <div class="resource-grid" id="resource-grid">
           ${resources.map(r => {
-            const isAC = KNOWN_AC.some(ac => r.toLowerCase().includes(ac.key));
-            return `<span class="res-chip${isAC ? ' ac-highlight' : ''}">${escHtml(r)}</span>`;
+            const isAC = KNOWN_AC.some(ac => ac.keys.some(k => r.toLowerCase().includes(k)));
+            return `<span class="res-chip${isAC ? ' ac-highlight' : ''}" data-name="${escHtml(r.toLowerCase())}">${escHtml(r)}</span>`;
           }).join('')}
         </div>
         <button class="toggle-btn" id="res-toggle" onclick="toggleResources()">Show all resources</button>
@@ -1161,6 +1162,34 @@
     const btn = el.nextElementSibling;
     el.classList.toggle('expanded');
     btn.textContent = el.classList.contains('expanded') ? 'Show less' : 'Show more';
+  }
+
+  function filterResources() {
+    const q     = document.getElementById('res-search').value.toLowerCase().trim();
+    const grid  = document.getElementById('resource-grid');
+    const btn   = document.getElementById('res-toggle');
+    const chips = document.querySelectorAll('#resource-grid .res-chip');
+    const total = chips.length;
+
+    if (!q) {
+      chips.forEach(c => c.style.display = '');
+      grid.classList.remove('expanded');
+      btn.style.display = '';
+      document.getElementById('res-count').textContent = `(${total})`;
+      return;
+    }
+
+    grid.classList.add('expanded');
+    btn.style.display = 'none';
+
+    let visible = 0;
+    chips.forEach(c => {
+      const match = c.dataset.name.includes(q);
+      c.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+
+    document.getElementById('res-count').textContent = `(${visible} / ${total})`;
   }
 
   function toggleResources() {
