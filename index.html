@@ -4,6 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FiveM Server Lookup</title>
+  <meta name="description" content="Look up any FiveM server by its code — live player count, anti-cheat, resources, framework, ping and more." />
+  <meta name="theme-color" content="#7c6fe0" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="FiveM Server Lookup" />
+  <meta property="og:description" content="Look up any FiveM server by its code — live player count, anti-cheat, resources and more." />
+  <meta property="og:url" content="https://sittingdown.github.io/fivem-lookup/" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%237c6fe0'/><circle cx='14' cy='14' r='6' fill='none' stroke='white' stroke-width='2.6'/><line x1='18.4' y1='18.4' x2='24' y2='24' stroke='white' stroke-width='2.6' stroke-linecap='round'/></svg>" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -657,7 +664,8 @@
       background: var(--surface2);
     }
 
-    .recent-chip:focus-visible {
+    button:focus-visible,
+    [role="button"]:focus-visible {
       outline: 2px solid var(--accent);
       outline-offset: 2px;
     }
@@ -846,11 +854,11 @@
   ];
 
   const VOICE_SYSTEMS = [
-    { key: 'pma-voice',   label: 'pma-voice' },
-    { key: 'saltychat',   label: 'SaltyChat' },
-    { key: 'mumble-voip', label: 'Mumble VoIP' },
-    { key: 'tokovoip',    label: 'TokoVoip' },
-    { key: 'ws-voice',    label: 'WS Voice' },
+    { keys: ['pma-voice'],   label: 'pma-voice' },
+    { keys: ['saltychat'],   label: 'SaltyChat' },
+    { keys: ['mumble-voip'], label: 'Mumble VoIP' },
+    { keys: ['tokovoip'],    label: 'TokoVoip' },
+    { keys: ['ws-voice'],    label: 'WS Voice' },
   ];
 
   const BUILD_NAMES = {
@@ -867,16 +875,13 @@
   };
 
   const BAN_SYSTEMS = [
-    { key: 'bansystem',      label: 'BanSystem' },
-    { key: 'ban_system',     label: 'BanSystem' },
-    { key: 'ban_list',       label: 'BanList' },
-    { key: 'banlist',        label: 'BanList' },
-    { key: 'bl-banning',     label: 'BL-Banning' },
-    { key: 'bm-ban',         label: 'BM-Ban' },
-    { key: 'hardcap',        label: 'Hardcap' },
-    { key: 'es_admin',       label: 'ES Admin' },
-    { key: 'evolved_admin',  label: 'Evolved Admin' },
-    { key: 'racingbanlist',  label: 'RacingBanList' },
+    { keys: ['bansystem', 'ban_system'], label: 'BanSystem' },
+    { keys: ['ban_list', 'banlist'],     label: 'BanList' },
+    { keys: ['bl-banning'],              label: 'BL-Banning' },
+    { keys: ['bm-ban'],                  label: 'BM-Ban' },
+    { keys: ['es_admin'],                label: 'ES Admin' },
+    { keys: ['evolved_admin'],           label: 'Evolved Admin' },
+    { keys: ['racingbanlist'],           label: 'RacingBanList' },
   ];
 
   const WHITELIST_KEYS = ['whitelist', 'esx_whitelist', 'qb-whitelist', 'whitelist-system', 'fiveguard'];
@@ -895,8 +900,9 @@
     deprecated:     { label: 'Deprecated',     cls: 'badge-yellow' },
   };
 
-  const HISTORY_KEY = 'fivem_history';
-  const MAX_HISTORY = 5;
+  const HISTORY_KEY   = 'fivem_history';
+  const MAX_HISTORY   = 5;
+  const DEFAULT_TITLE = 'FiveM Server Lookup';
 
   // API hosts (declared before the auto-load below uses them — avoids a TDZ error)
   const API_HOSTS = [
@@ -980,6 +986,7 @@
   });
 
   function showError(msg) {
+    document.title = DEFAULT_TITLE;
     const el = document.getElementById('error-msg');
     el.textContent = msg;
     el.style.display = 'block';
@@ -1125,6 +1132,7 @@
     const tags      = (vars.tags || '').split(',').map(t => t.trim()).filter(Boolean);
 
     const serverName  = stripColor(d.hostname || vars.sv_projectName || 'Unknown Server');
+    document.title    = `${serverName} — ${DEFAULT_TITLE}`;
     const maxPlayers  = d.svMaxclients || vars.sv_maxClients || '?';
     // d.clients is the authoritative count; the players array is empty when a server hides its list
     const playerCount = typeof d.clients === 'number' ? d.clients : players.length;
@@ -1150,8 +1158,8 @@
         !AC_EXCLUDE_WORDS.some(w => lo.includes(w));
     });
     const framework   = FRAMEWORKS.find(f => f.keys.some(k => rl.includes(k)));
-    const voice       = VOICE_SYSTEMS.find(v => rl.some(r => r.includes(v.key)));
-    const banSystem   = BAN_SYSTEMS.find(b => rl.some(r => r.includes(b.key)));
+    const voice       = VOICE_SYSTEMS.find(v => v.keys.some(k => rl.some(r => r.includes(k))));
+    const banSystem   = BAN_SYSTEMS.find(b => b.keys.some(k => rl.some(r => r.includes(k))));
     const whitelist   = WHITELIST_KEYS.some(k => rl.some(r => r.includes(k)));
 
     // Meta
@@ -1208,7 +1216,9 @@
           </div>
         </div>
         <div class="server-meta">
-          <span class="badge badge-copy" title="Click to copy" data-copy="${escHtml(code)}" onclick="copyText(this.dataset.copy, this)">Code: <strong>${escHtml(code)}</strong></span>
+          <span class="badge badge-copy" role="button" tabindex="0" title="Click to copy" data-copy="${escHtml(code)}"
+                onclick="copyText(this.dataset.copy, this)"
+                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">Code: <strong>${escHtml(code)}</strong></span>
           <span class="badge">Game: <strong>${escHtml(gameType)}</strong></span>
           <span class="badge">Map: <strong>${escHtml(mapName)}</strong></span>
           ${buildLabel ? `<span class="badge">Build: <strong>${escHtml(buildLabel)}</strong></span>` : ''}
@@ -1339,7 +1349,8 @@
             ${players.map((p, i) => `
             <tr data-name="${escHtml((p.name || '').toLowerCase())}" data-identifiers="${escHtml(JSON.stringify(p.identifiers || []))}">
               <td>${p.id ?? i + 1}</td>
-              <td class="player-name" onclick="toggleIdentifiers(this)">${escHtml(p.name || 'Unknown')}</td>
+              <td class="player-name" role="button" tabindex="0" onclick="toggleIdentifiers(this)"
+                  onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${escHtml(p.name || 'Unknown')}</td>
               <td><span class="ping-pill ${pingClass(p.ping)}">${p.ping ?? '?'} ms</span></td>
             </tr>`).join('')}
           </tbody>
