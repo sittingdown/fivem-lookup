@@ -155,14 +155,52 @@
       flex-wrap: wrap;
     }
 
+    .server-id-row {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .server-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 10px;
+      flex-shrink: 0;
+      background: var(--surface2);
+      object-fit: cover;
+    }
+
     .server-name {
       font-size: 1.4rem;
       font-weight: 700;
       line-height: 1.3;
-      flex: 1;
-      min-width: 0;
       word-break: break-word;
     }
+
+    .server-owner {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: 7px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .server-owner img {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .server-owner a { color: var(--text); text-decoration: none; font-weight: 600; }
+    .server-owner a:hover { color: var(--accent); }
+
+    .badge-green  { color: var(--green);  border-color: color-mix(in srgb, var(--green)  35%, transparent); }
+    .badge-yellow { color: var(--yellow); border-color: color-mix(in srgb, var(--yellow) 35%, transparent); }
+    .badge-red    { color: var(--red);    border-color: color-mix(in srgb, var(--red)    35%, transparent); }
 
     .btn-group {
       display: flex;
@@ -770,6 +808,15 @@
 
   const HIDDEN_VARS = ['sv_licenseKey', 'sv_licenseKeyToken', 'sv_steamApiKey', 'sv_tebexSecret'];
 
+  const PREMIUM_NAMES = { pt: 'Platinum', au: 'Aurum', ag: 'Argentum' };
+
+  const SUPPORT_STATUS = {
+    supported:      { label: 'Supported',      cls: 'badge-green'  },
+    end_of_support: { label: 'End of Support', cls: 'badge-yellow' },
+    end_of_life:    { label: 'End of Life',    cls: 'badge-red'    },
+    deprecated:     { label: 'Deprecated',     cls: 'badge-yellow' },
+  };
+
   const HISTORY_KEY = 'fivem_history';
   const MAX_HISTORY = 5;
 
@@ -880,6 +927,11 @@
     return (str || '').replace(/\^[0-9]/g, '').replace(/~[a-zA-Z0-9~]+~/g, '').trim();
   }
 
+  function flagEmoji(cc) {
+    if (!/^[A-Za-z]{2}$/.test(cc || '')) return '';
+    return String.fromCodePoint(...[...cc.toUpperCase()].map(c => 0x1F1E6 - 65 + c.charCodeAt(0)));
+  }
+
   function escHtml(str) {
     return String(str)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -928,6 +980,17 @@
     const onesyncOn  = ['true','1','on','legacy'].includes(onesyncRaw.toLowerCase());
     const scripthook = vars.sv_scriptHookAllowed === '1' || vars.sv_scriptHookAllowed === 'true';
 
+    // Server identity / metadata
+    const iconUrl      = d.iconVersion ? `https://frontend.cfx-services.net/api/servers/icon/${code}/${d.iconVersion}.png` : null;
+    const ownerName    = d.ownerName || '';
+    const ownerUrl     = d.ownerProfile || '';
+    const ownerPic     = d.ownerAvatar || '';
+    const upvotes      = (typeof d.upvotePower === 'number' && d.upvotePower > 0) ? d.upvotePower : null;
+    const locale       = (vars.locale || '').trim();
+    const regionLabel  = locale ? `${flagEmoji(locale.split('-')[1] || '')} ${escHtml(locale)}`.trim() : '';
+    const premiumLabel = PREMIUM_NAMES[(vars.premium || '').toLowerCase()] || '';
+    const support      = SUPPORT_STATUS[(d.support_status || '').toLowerCase()] || null;
+
     // Ping stats
     const pings   = players.map(p => p.ping).filter(p => typeof p === 'number' && p > 0);
     const pingAvg = pings.length ? Math.round(pings.reduce((a, b) => a + b, 0) / pings.length) : null;
@@ -944,7 +1007,19 @@
       <!-- Server header -->
       <div class="server-header">
         <div class="server-title-row">
-          <div class="server-name">${escHtml(serverName)}</div>
+          <div class="server-id-row">
+            ${iconUrl ? `<img class="server-icon" src="${escHtml(iconUrl)}" alt="" onerror="this.remove()" />` : ''}
+            <div style="flex:1;min-width:0">
+              <div class="server-name">${escHtml(serverName)}</div>
+              ${ownerName ? `
+              <div class="server-owner">
+                ${ownerPic ? `<img src="${escHtml(ownerPic)}" alt="" onerror="this.remove()" />` : ''}
+                <span>Owned by ${ownerUrl
+                  ? `<a href="${escHtml(ownerUrl)}" target="_blank" rel="noopener">${escHtml(ownerName)}</a>`
+                  : escHtml(ownerName)}</span>
+              </div>` : ''}
+            </div>
+          </div>
           <div class="btn-group">
             ${discordUrl ? `<a class="btn btn-discord" href="${escHtml(discordUrl)}" target="_blank" rel="noopener">Discord</a>` : ''}
             <a class="btn btn-accent" href="fivem://connect/${escHtml(code)}">Direct Connect</a>
@@ -956,6 +1031,10 @@
           <span class="badge">Map: <strong>${escHtml(mapName)}</strong></span>
           ${buildLabel ? `<span class="badge">Build: <strong>${escHtml(buildLabel)}</strong></span>` : ''}
           ${onesyncRaw ? `<span class="badge">OneSync: <strong>${onesyncOn ? 'On' : 'Off'}</strong></span>` : ''}
+          ${regionLabel ? `<span class="badge">Region: <strong>${regionLabel}</strong></span>` : ''}
+          ${premiumLabel ? `<span class="badge">Tier: <strong>${escHtml(premiumLabel)}</strong></span>` : ''}
+          ${upvotes !== null ? `<span class="badge">Upvotes: <strong>↑ ${upvotes}</strong></span>` : ''}
+          ${support ? `<span class="badge ${support.cls}">${support.label}</span>` : ''}
         </div>
         ${desc ? `
           <div class="server-desc" id="srv-desc">${escHtml(desc)}</div>
