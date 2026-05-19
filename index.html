@@ -517,7 +517,7 @@
 
     .id-entry {
       display: flex;
-      align-items: baseline;
+      align-items: center;
       gap: 12px;
       font-size: 0.82rem;
     }
@@ -640,19 +640,43 @@
     }
 
     .recent-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 7px;
       cursor: pointer;
-      padding: 6px 13px;
+      padding: 6px 8px 6px 13px;
       transition: border-color 0.15s, background 0.15s;
-      max-width: 200px;
+      max-width: 230px;
     }
 
     .recent-chip:hover {
       border-color: var(--accent);
       background: var(--surface2);
     }
+
+    .recent-chip:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .recent-chip-text { min-width: 0; }
+
+    .recent-remove {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 1.05rem;
+      line-height: 1;
+      padding: 2px 5px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .recent-remove:hover { color: var(--red); background: var(--bg); }
 
     .recent-chip-name {
       color: var(--text);
@@ -668,6 +692,60 @@
       font-size: 0.68rem;
       margin-top: 1px;
     }
+
+    /* ── Refresh / freshness / copy ── */
+    .freshness {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-top: 14px;
+      font-size: 0.76rem;
+      color: var(--muted);
+    }
+
+    .link-btn {
+      background: none;
+      border: none;
+      color: var(--accent);
+      cursor: pointer;
+      font-size: 0.76rem;
+      font-weight: 600;
+      padding: 0;
+    }
+
+    .link-btn:hover:not(:disabled) { text-decoration: underline; }
+    .link-btn:disabled { opacity: 0.5; cursor: default; }
+
+    .btn-ghost {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .btn-ghost:hover { opacity: 1; border-color: var(--accent); color: var(--accent); }
+    .btn-ghost.copied { opacity: 1; border-color: var(--green); color: var(--green); }
+
+    .badge-copy { cursor: pointer; transition: border-color 0.15s; }
+    .badge-copy:hover { border-color: var(--accent); }
+    .badge-copy.copied { color: var(--green); border-color: var(--green); }
+
+    .id-copy {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    .id-copy:hover { border-color: var(--accent); color: var(--accent); }
+    .id-copy.copied { border-color: var(--green); color: var(--green); }
 
     /* ── Mobile tweaks ── */
     @media (max-width: 500px) {
@@ -820,6 +898,16 @@
   const HISTORY_KEY = 'fivem_history';
   const MAX_HISTORY = 5;
 
+  // API hosts (declared before the auto-load below uses them — avoids a TDZ error)
+  const API_HOSTS = [
+    'https://servers-frontend.fivem.net/api/servers/single/',
+    'https://frontend.cfx-services.net/api/servers/single/',
+  ];
+
+  let activeController = null;
+  let currentCode      = null;
+  let fetchedAt        = 0;
+
   function loadHistory() {
     try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
     catch { return []; }
@@ -841,16 +929,30 @@
     const chips = document.getElementById('recent-chips');
     if (!hist.length) { wrap.style.display = 'none'; return; }
     wrap.style.display = 'block';
-    chips.innerHTML = hist.map(h => `
-      <div class="recent-chip" onclick="loadFromHistory('${escHtml(h.code)}')">
-        <div class="recent-chip-name">${escHtml(h.name)}</div>
-        <div class="recent-chip-code">${escHtml(h.code)}</div>
-      </div>`).join('');
+    chips.innerHTML = hist.map(h => {
+      const code = escHtml(h.code);
+      return `
+      <div class="recent-chip" role="button" tabindex="0"
+           onclick="loadFromHistory('${code}')"
+           onkeydown="if((event.key==='Enter'||event.key===' ')&&event.target===event.currentTarget){event.preventDefault();loadFromHistory('${code}')}">
+        <div class="recent-chip-text">
+          <div class="recent-chip-name">${escHtml(h.name)}</div>
+          <div class="recent-chip-code">${code}</div>
+        </div>
+        <button class="recent-remove" title="Remove" aria-label="Remove ${escHtml(h.name)}"
+                onclick="event.stopPropagation();removeFromHistory('${code}')">×</button>
+      </div>`;
+    }).join('');
   }
 
   function loadFromHistory(code) {
     document.getElementById('code-input').value = code;
     lookup();
+  }
+
+  function removeFromHistory(code) {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(loadHistory().filter(h => h.code !== code)));
+    renderHistory();
   }
 
   // Migrate old single-code storage to history format
@@ -862,9 +964,13 @@
 
   renderHistory();
 
-  // Auto-load most recent server
+  // Load ?code= from the URL if present, otherwise the most recent server
+  const urlCode = new URLSearchParams(location.search).get('code');
   const hist = loadHistory();
-  if (hist.length) {
+  if (urlCode) {
+    document.getElementById('code-input').value = urlCode;
+    lookup();
+  } else if (hist.length) {
     document.getElementById('code-input').value = hist[0].code;
     lookup();
   }
@@ -887,7 +993,30 @@
     document.getElementById('lookup-btn').disabled = on;
   }
 
-  let activeController = null;
+  // Fetch a server, falling back to the secondary host on network / 5xx errors.
+  // A 404 from any host is definitive — the server does not exist.
+  async function fetchServer(code, signal) {
+    let lastErr = null;
+    for (const host of API_HOSTS) {
+      let res;
+      try {
+        res = await fetch(host + code, { signal });
+      } catch (e) {
+        if (e.name === 'AbortError') throw e;
+        lastErr = e;
+        continue;
+      }
+      if (res.status === 404) throw new Error('Server not found. Check the code and try again.');
+      if (!res.ok) { lastErr = new Error(`HTTP ${res.status}`); continue; }
+      try {
+        return await res.json();
+      } catch (e) {
+        if (e.name === 'AbortError') throw e;
+        lastErr = e;
+      }
+    }
+    throw lastErr || new Error('Failed to fetch server data.');
+  }
 
   async function lookup() {
     const code = document.getElementById('code-input').value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -903,17 +1032,66 @@
     setLoading(true);
 
     try {
-      const res = await fetch(`https://servers-frontend.fivem.net/api/servers/single/${code}`, { signal });
-      if (!res.ok) throw new Error(res.status === 404 ? 'Server not found. Check the code and try again.' : `HTTP ${res.status}`);
-      const json = await res.json();
+      const json = await fetchServer(code, signal);
       const name = stripColor(json.Data?.hostname || json.Data?.vars?.sv_projectName || code);
       saveToHistory(code, name);
       render(json.Data, code);
+      try { history.replaceState(null, '', `${location.pathname}?code=${code}`); } catch {}
     } catch (e) {
       if (e.name === 'AbortError') return;  // superseded by a newer lookup — let that request own the UI
       showError(e.message || 'Failed to fetch server data.');
     } finally {
       if (!signal.aborted) setLoading(false);
+    }
+  }
+
+  function refresh() {
+    if (!currentCode) return;
+    document.getElementById('code-input').value = currentCode;
+    lookup();
+  }
+
+  function updateFreshness() {
+    const el = document.getElementById('fresh-text');
+    if (!el || !fetchedAt) return;
+    const s = Math.round((Date.now() - fetchedAt) / 1000);
+    el.textContent =
+      s < 10   ? 'Updated just now' :
+      s < 60   ? `Updated ${s}s ago` :
+      s < 3600 ? `Updated ${Math.floor(s / 60)}m ago` :
+                 `Updated ${Math.floor(s / 3600)}h ago`;
+  }
+  setInterval(updateFreshness, 10000);
+
+  function copyFeedback(el) {
+    if (el._restore) clearTimeout(el._restore);
+    else el._html = el.innerHTML;
+    el.textContent = 'Copied!';
+    el.classList.add('copied');
+    el._restore = setTimeout(() => {
+      el.innerHTML = el._html;
+      el.classList.remove('copied');
+      el._restore = null;
+    }, 1200);
+  }
+
+  function copyText(text, el) {
+    const fallback = () => {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        ta.remove();
+        if (ok) copyFeedback(el);
+      } catch {}
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => copyFeedback(el)).catch(fallback);
+    } else {
+      fallback();
     }
   }
 
@@ -939,6 +1117,8 @@
   }
 
   function render(d, code) {
+    currentCode = code;
+    fetchedAt   = Date.now();
     const vars      = d.vars || {};
     const resources = d.resources || [];
     const players   = [...(d.players || [])].sort((a, b) => (a.id ?? Infinity) - (b.id ?? Infinity));
@@ -957,6 +1137,7 @@
     // Buttons
     const rawDiscord = vars.Discord || vars.discord || vars.sv_discord || vars.DISCORD || '';
     const discordUrl = rawDiscord ? (rawDiscord.startsWith('http') ? rawDiscord : 'https://' + rawDiscord) : null;
+    const shareUrl   = `${location.origin}${location.pathname}?code=${code}`;
 
     // Resource lookups
     const rl = resources.map(r => r.toLowerCase());
@@ -1022,11 +1203,12 @@
           </div>
           <div class="btn-group">
             ${discordUrl ? `<a class="btn btn-discord" href="${escHtml(discordUrl)}" target="_blank" rel="noopener">Discord</a>` : ''}
+            <button class="btn btn-ghost" data-copy="${escHtml(shareUrl)}" onclick="copyText(this.dataset.copy, this)">Copy Link</button>
             <a class="btn btn-accent" href="fivem://connect/${escHtml(code)}">Direct Connect</a>
           </div>
         </div>
         <div class="server-meta">
-          <span class="badge">Code: <strong>${escHtml(code)}</strong></span>
+          <span class="badge badge-copy" title="Click to copy" data-copy="${escHtml(code)}" onclick="copyText(this.dataset.copy, this)">Code: <strong>${escHtml(code)}</strong></span>
           <span class="badge">Game: <strong>${escHtml(gameType)}</strong></span>
           <span class="badge">Map: <strong>${escHtml(mapName)}</strong></span>
           ${buildLabel ? `<span class="badge">Build: <strong>${escHtml(buildLabel)}</strong></span>` : ''}
@@ -1035,6 +1217,11 @@
           ${premiumLabel ? `<span class="badge">Tier: <strong>${escHtml(premiumLabel)}</strong></span>` : ''}
           ${upvotes !== null ? `<span class="badge">Upvotes: <strong>↑ ${upvotes}</strong></span>` : ''}
           ${support ? `<span class="badge ${support.cls}">${support.label}</span>` : ''}
+        </div>
+        <div class="freshness">
+          <span id="fresh-text">Updated just now</span>
+          <span style="color:var(--border)">·</span>
+          <button class="link-btn" onclick="refresh()">Refresh</button>
         </div>
         ${desc ? `
           <div class="server-desc" id="srv-desc">${escHtml(desc)}</div>
@@ -1236,16 +1423,22 @@
           const type  = id.substring(0, sep);
           const value = id.substring(sep + 1);
           const label = ID_LABELS[type] || type;
-          let   val   = escHtml(value);
+          let   val     = escHtml(value);
+          let   copyVal = value;
 
           if (type === 'steam') {
             try {
               const steam64 = BigInt('0x' + value).toString();
-              val = `<a href="https://steamcommunity.com/profiles/${steam64}" target="_blank" rel="noopener">${steam64}</a>`;
+              val     = `<a href="https://steamcommunity.com/profiles/${steam64}" target="_blank" rel="noopener">${steam64}</a>`;
+              copyVal = steam64;
             } catch {}
           }
 
-          return `<div class="id-entry"><span class="id-type">${label}</span><span class="id-val">${val}</span></div>`;
+          return `<div class="id-entry">
+            <span class="id-type">${label}</span>
+            <span class="id-val">${val}</span>
+            <button class="id-copy" data-copy="${escHtml(copyVal)}" onclick="copyText(this.dataset.copy, this)">Copy</button>
+          </div>`;
         }).join('')
       : '<span style="color:var(--muted);font-size:0.82rem">No identifiers available</span>';
 
