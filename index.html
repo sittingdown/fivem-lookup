@@ -724,6 +724,29 @@
     .link-btn:hover:not(:disabled) { text-decoration: underline; }
     .link-btn:disabled { opacity: 0.5; cursor: default; }
 
+    .icon-refresh {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 5px 7px;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .icon-refresh:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+    .icon-refresh:disabled { cursor: default; color: var(--accent); }
+    .icon-refresh.spinning svg { animation: spin 0.7s linear infinite; }
+
+    .player-list-head {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
     .btn-ghost {
       background: none;
       border: 1px solid var(--border);
@@ -1063,8 +1086,10 @@
     activeController = new AbortController();
     const signal = activeController.signal;
 
-    const btn = document.getElementById('refresh-btn');
-    if (btn) { btn.textContent = 'Refreshing…'; btn.disabled = true; }
+    const textBtn = document.getElementById('refresh-btn');
+    const iconBtn = document.getElementById('player-refresh');
+    if (textBtn) { textBtn.textContent = 'Refreshing…'; textBtn.disabled = true; }
+    if (iconBtn) { iconBtn.classList.add('spinning'); iconBtn.disabled = true; }
 
     // Preserve the player / resource filter text across the in-place re-render
     const playerFilter = (document.getElementById('player-search') || {}).value || '';
@@ -1081,8 +1106,10 @@
       if (rs && resFilter)    { rs.value = resFilter;    filterResources(); }
     } catch (e) {
       if (e.name === 'AbortError') return;  // superseded by a newer request
-      const b = document.getElementById('refresh-btn');
-      if (b) { b.textContent = 'Retry'; b.disabled = false; }
+      const tb = document.getElementById('refresh-btn');
+      if (tb) { tb.textContent = 'Retry'; tb.disabled = false; }
+      const ib = document.getElementById('player-refresh');
+      if (ib) { ib.classList.remove('spinning'); ib.disabled = false; }
     }
   }
 
@@ -1361,7 +1388,12 @@
       <!-- Player list -->
       <div class="full-card">
         <div class="card-header">
-          <div class="card-label" style="margin:0">Player List</div>
+          <div class="player-list-head">
+            <div class="card-label" style="margin:0">Player List</div>
+            <button class="icon-refresh" id="player-refresh" onclick="refresh()" title="Refresh player list" aria-label="Refresh player list">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+            </button>
+          </div>
           <input class="filter-input" id="player-search" placeholder="Search players…" oninput="filterPlayers()" />
         </div>
         ${players.length ? `
