@@ -675,26 +675,40 @@
 
 <script>
   const KNOWN_AC = [
-    { keys: ['warden', 'warden-ac', 'warden_ac'],         label: 'Warden' },
-    { keys: ['easyanticheat'],                            label: 'EasyAntiCheat' },
-    { keys: ['electron_ac', 'electron-ac', 'electronac', 'cubic_ac'], label: 'Electron AC' },
+    // ── Confirmed — resource name sourced from official docs / GitHub ─────────
+    { keys: ['warden', 'warden-ac', 'warden_ac'],
+                                                          label: 'Warden' },
+    { keys: ['electronac', 'electron_ac', 'electron-ac', 'cubic_ac'],
+                                                          label: 'Electron AC' },       // ElectronAC → lowercase = electronac
     { keys: ['fiveguard'],                                label: 'FiveGuard' },
-    { keys: ['badger_ac', 'badger-ac'],                   label: 'Badger Anti-Cheat' },
-    { keys: ['screenshooter'],                            label: 'Screenshooter' },
+    { keys: ['badger-anticheat', 'badger_anticheat'],     label: 'Badger Anti-Cheat' }, // docs: "name must stay Badger-Anticheat"
+    { keys: ['screenshot-basic'],                         label: 'Screenshooter' },     // citizenfx/screenshot-basic
     { keys: ['txadmin'],                                  label: 'txAdmin' },
+    { keys: ['wolfshield'],                               label: 'WolfShield' },         // tebex: "ensure WolfShield"
+    { keys: ['reaperac', 'reaper_ac', 'reaper-ac'],       label: 'Reaper AC' },
+    { keys: ['sentinelac', 'sentinel_ac', 'sentinel-ac'], label: 'Sentinel AC' },
+    { keys: ['nexus-anticheat', 'nexus_ac', 'nexus-ac'],  label: 'Nexus AC' },          // github: Nexus-AntiCheat
+    { keys: ['secureserve'],                              label: 'SecureServe' },        // "ensure SecureServe"
+    { keys: ['fireac'],                                   label: 'FIREAC' },             // github: AmirrezaJaberi/FIREAC
+    { keys: ['finiac'],                                   label: 'FiniAC' },             // docs: "ensure FiniAC"
+    { keys: ['waveshield'],                               label: 'WaveShield' },         // docs: "ensure WaveShield"
+    { keys: ['versusac'],                                 label: 'VersusAC' },           // docs: "start VersusAC"
+    { keys: ['valkyrie'],                                 label: 'Valkyrie' },           // github: NotSomething0/Valkyrie
+    { keys: ['pegasusac'],                                label: 'PegasusAC' },          // docs: PegasusAC/server/sv_config.lua
+    { keys: ['icarusadvancedanticheat'],                  label: 'Icarus AC' },          // github: EinS4ckZwiebeln/IcarusAdvancedAnticheat
+    { keys: ['anticheese-anticheat', 'anticheese'],       label: 'AntiCheese' },         // github: Blumlaut/anticheese-anticheat
+    { keys: ['tigoanticheat'],                            label: 'Tigo AC' },            // docs: "start TigoAntiCheat"
+    { keys: ['fenixac'],                                  label: 'FenixAC' },            // github: turangarusso/RuxoAC — folder "FenixAC_3.0"
+
+    // ── Community-observed — specific enough keys, low false-positive risk ────
     { keys: ['ksac'],                                     label: 'KSAC' },
     { keys: ['illusive_ac', 'illusive-ac'],               label: 'Illusive AC' },
     { keys: ['shield_ac', 'shield-ac'],                   label: 'Shield AC' },
     { keys: ['anticheat', 'anticheat-v2', 'anti_cheat'],  label: 'AntiCheat' },
-    { keys: ['wolf_ac', 'wolf-ac'],                       label: 'Wolf AC' },
-    { keys: ['reaper_ac', 'reaper-ac', 'reaper-anticheat'], label: 'Reaper AC' },
-    { keys: ['lynx_ac', 'lynx-ac'],                       label: 'Lynx AC' },
     { keys: ['mn_anticheat'],                             label: 'MN AntiCheat' },
-    { keys: ['sentinel_ac', 'sentinel-ac'],               label: 'Sentinel AC' },
     { keys: ['nova_ac', 'nova-ac'],                       label: 'Nova AC' },
-    { keys: ['nexus_ac', 'nexus-ac'],                     label: 'Nexus AC' },
     { keys: ['quantum_ac', 'quantum-ac'],                 label: 'Quantum AC' },
-    { keys: ['pma-ac', 'pma_ac'],                         label: 'PMA Anti-Cheat' },
+    { keys: ['pma-ac', 'pma_ac'],                         label: 'PMA AC' },
     { keys: ['cerberus_ac', 'cerberus-ac'],               label: 'Cerberus AC' },
     { keys: ['guardian_ac', 'guardian-ac'],               label: 'Guardian AC' },
     { keys: ['pro_ac', 'pro-ac'],                         label: 'ProAC' },
