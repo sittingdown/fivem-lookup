@@ -765,6 +765,9 @@
 
   const WHITELIST_KEYS = ['whitelist', 'esx_whitelist', 'qb-whitelist', 'whitelist-system', 'fiveguard'];
 
+  // Words that mean an "*_ac" / "*-ac" resource is NOT anti-cheat (e.g. air-conditioning scripts)
+  const AC_EXCLUDE_WORDS = ['vehicle', 'car', 'house', 'home', 'interior', 'building', 'garage', 'climate', 'hvac', 'aircon'];
+
   const HIDDEN_VARS = ['sv_licenseKey', 'sv_licenseKeyToken', 'sv_steamApiKey', 'sv_tebexSecret'];
 
   const HISTORY_KEY = 'fivem_history';
@@ -837,25 +840,33 @@
     document.getElementById('lookup-btn').disabled = on;
   }
 
+  let activeController = null;
+
   async function lookup() {
     const code = document.getElementById('code-input').value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
     if (!code) { showError('Please enter a server code.'); return; }
+
+    // Cancel any in-flight request so a slow earlier lookup can't overwrite a newer one
+    if (activeController) activeController.abort();
+    activeController = new AbortController();
+    const signal = activeController.signal;
 
     document.getElementById('results').style.display = 'none';
     document.getElementById('results').innerHTML = '';
     setLoading(true);
 
     try {
-      const res = await fetch(`https://servers-frontend.fivem.net/api/servers/single/${code}`);
+      const res = await fetch(`https://servers-frontend.fivem.net/api/servers/single/${code}`, { signal });
       if (!res.ok) throw new Error(res.status === 404 ? 'Server not found. Check the code and try again.' : `HTTP ${res.status}`);
       const json = await res.json();
       const name = stripColor(json.Data?.hostname || json.Data?.vars?.sv_projectName || code);
       saveToHistory(code, name);
       render(json.Data, code);
     } catch (e) {
+      if (e.name === 'AbortError') return;  // superseded by a newer lookup — let that request own the UI
       showError(e.message || 'Failed to fetch server data.');
     } finally {
-      setLoading(false);
+      if (!signal.aborted) setLoading(false);
     }
   }
 
@@ -883,7 +894,9 @@
 
     const serverName  = stripColor(d.hostname || vars.sv_projectName || 'Unknown Server');
     const maxPlayers  = d.svMaxclients || vars.sv_maxClients || '?';
-    const playerCount = players.length;
+    // d.clients is the authoritative count; the players array is empty when a server hides its list
+    const playerCount = typeof d.clients === 'number' ? d.clients : players.length;
+    const listHidden  = playerCount > 0 && players.length === 0;
     const gameType    = vars.gametype || '—';
     const mapName     = vars.mapname  || '—';
     const pureLevel   = vars.sv_pureLevel || '0';
@@ -900,7 +913,8 @@
     const unknownAC   = resources.filter(r => {
       const lo = r.toLowerCase();
       return (lo.endsWith('_ac') || lo.endsWith('-ac')) &&
-        !knownACKeys.some(k => lo.includes(k));
+        !knownACKeys.some(k => lo.includes(k)) &&
+        !AC_EXCLUDE_WORDS.some(w => lo.includes(w));
     });
     const framework   = FRAMEWORKS.find(f => f.keys.some(k => rl.includes(k)));
     const voice       = VOICE_SYSTEMS.find(v => rl.some(r => r.includes(v.key)));
@@ -1065,7 +1079,9 @@
           </tbody>
         </table>
         <div class="empty-state" id="no-players" style="display:none">No players match your search.</div>
-        ` : '<div class="empty-state">No players currently online.</div>'}
+        ` : `<div class="empty-state">${listHidden
+          ? 'This server keeps its player list private.'
+          : 'No players currently online.'}</div>`}
       </div>
 
       <!-- Server variables -->
